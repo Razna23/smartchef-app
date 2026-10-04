@@ -82,6 +82,12 @@
   <section id="recipes-screen" class="screen d-none">
     <h1 class="screen-title">Recipe Suggestions</h1>
 
+    <!-- explains why a recipe's "needs N more" count can be lower than its full ingredient list -->
+    <div id="pantry-note" class="pantry-note d-none" role="note">
+      <span>Salt, pepper, oil, water and sugar aren't counted as missing ingredients.</span>
+      <button type="button" id="pantry-note-close" class="pantry-note-close" aria-label="Dismiss note">&times;</button>
+    </div>
+
     <div class="scroll-area">
       <div id="recipe-cards" class="d-flex flex-column gap-3"></div>
     </div>
