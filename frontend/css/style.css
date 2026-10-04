@@ -63,7 +63,7 @@ body {
   position: relative;
   display: inline-block;
   line-height: 1.2;
-  text-align: center;
+  text-align: left;
 }
 
 .app-logo-image {
@@ -295,6 +295,35 @@ body {
   font-size: 0.75rem;
   color: #5a4110;
   margin-top: 0.15rem;
+}
+
+/* note above the recipe list explaining which staples aren't counted as missing */
+.pantry-note {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  background: #fbf0d6;
+  border: 1px solid #e3b455;
+  color: #3a2a08;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.pantry-note.d-none {
+  display: none;
+}
+
+.pantry-note-close {
+  border: none;
+  background: transparent;
+  color: #3a2a08;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  cursor: pointer;
 }
 
 /* --- Recipe detail screen --- */
