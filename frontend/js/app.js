@@ -379,13 +379,23 @@ document.getElementById("get-recipes-btn").addEventListener("click", async () =>
 
 const recipeCardsEl = document.getElementById("recipe-cards");
 
+const pantryNoteEl = document.getElementById("pantry-note");
+
+document.getElementById("pantry-note-close").addEventListener("click", () => {
+  pantryNoteEl.classList.add("d-none");
+});
+
 function renderRecipes(recipes) {
   recipeCardsEl.innerHTML = "";
 
   if (recipes.length === 0) {
+    pantryNoteEl.classList.add("d-none");
     recipeCardsEl.innerHTML = '<p class="text-muted text-center">No matching recipes found.</p>';
     return;
   }
+
+  // shown again on every new search, in case it was dismissed on an earlier one
+  pantryNoteEl.classList.remove("d-none");
 
   recipes.forEach((recipe) => {
     const card = document.createElement("div");
