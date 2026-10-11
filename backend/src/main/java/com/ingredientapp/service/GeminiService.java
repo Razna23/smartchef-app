@@ -90,13 +90,14 @@ public class GeminiService {
                 throw new ApiRateLimitedException(
                         "The Gemini API daily free-tier quota has been used up. Try again later.");
             } catch (RestClientException e) {
-                // network error or bad API call, log it and return nothing
+                // Gemini couldn't be reached or rejected the call (e.g. an
+                // invalid API key): report it instead of returning an empty list
                 logger.error("Gemini API call failed (model={}): {}", model, e.getMessage(), e);
-                return results;
+                throw new ApiUnavailableException("The ingredient detection service is unavailable.", e);
             }
             if (responseJson == null) {
                 logger.warn("Gemini API returned a null response body (model={})", model);
-                return results;
+                throw new ApiUnavailableException("The ingredient detection service returned no response.");
             }
 
             String modelText = extractModelText(responseJson);
@@ -124,8 +125,8 @@ public class GeminiService {
             } else {
                 logger.warn("Gemini model_output was not a JSON array as requested. Model text: {}", modelText);
             }
-        } catch (ApiRateLimitedException e) {
-            // rethrow, don't let this get swallowed by the catch below
+        } catch (ApiRateLimitedException | ApiUnavailableException e) {
+            // rethrow, don't let these get swallowed by the catch below
             throw e;
         } catch (Exception e) {
             // Gemini didn't return valid JSON, just log it and return nothing
