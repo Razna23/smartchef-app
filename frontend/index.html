@@ -12,6 +12,14 @@
 
 <div class="app-shell">
 
+  <!-- server status notice, shared by every screen. Only shown when a request to the back-end
+       is slow (usually Render's free tier waking the back-end up) or when the session was reset. -->
+  <div id="server-status" class="server-status d-none" role="status" aria-live="polite">
+    <span id="server-status-spinner" class="server-status-spinner" aria-hidden="true"></span>
+    <span id="server-status-text"></span>
+    <button type="button" id="server-status-close" class="server-status-close d-none" aria-label="Dismiss notice">&times;</button>
+  </div>
+
   <!-- scan screen -->
   <section id="scan-screen" class="screen">
     <div class="app-logo">
