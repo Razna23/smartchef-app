@@ -326,6 +326,57 @@ body {
   cursor: pointer;
 }
 
+/* --- Server status notice (cold start / session reset), shared by every screen --- */
+
+.server-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  background: #e7f0ff;
+  border: 1px solid #6ea8ff;
+  color: #10284d;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.server-status.d-none {
+  display: none;
+}
+
+.server-status-spinner {
+  flex: 0 0 auto;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-top: 0.1rem;
+  border: 2px solid #6ea8ff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: server-status-spin 0.8s linear infinite;
+}
+
+.server-status-spinner.d-none {
+  display: none;
+}
+
+@keyframes server-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.server-status-close {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #10284d;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  cursor: pointer;
+}
+
 /* --- Recipe detail screen --- */
 
 .detail-image {
