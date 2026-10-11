@@ -6,6 +6,7 @@ import com.ingredientapp.model.Ingredient;
 import com.ingredientapp.model.Recipe;
 import com.ingredientapp.model.RecipeDetail;
 import com.ingredientapp.service.ApiRateLimitedException;
+import com.ingredientapp.service.ApiUnavailableException;
 import com.ingredientapp.service.GeminiService;
 import com.ingredientapp.service.SpoonacularService;
 import jakarta.servlet.http.HttpSession;
@@ -41,6 +42,12 @@ public class IngredientController {
             // 429 so the front-end knows it's a quota issue, not just no ingredients found
             return ResponseEntity.status(429).body(Map.of(
                     "error", "rate_limited",
+                    "message", e.getMessage()
+            ));
+        } catch (ApiUnavailableException e) {
+            // 503: the service is down, not a problem with the photo
+            return ResponseEntity.status(503).body(Map.of(
+                    "error", "service_unavailable",
                     "message", e.getMessage()
             ));
         }
