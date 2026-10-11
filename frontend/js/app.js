@@ -132,31 +132,113 @@ function withSessionHeader(headers) {
 function captureSessionId(res) {
   const sessionId = res.headers.get(SESSION_HEADER);
   if (sessionId) {
+    const previousId = getStoredSessionId();
     storeSessionId(sessionId);
+    // The back-end only sends a session id when it creates a new session. If this tab
+    // already had one, the old session is gone: Render restarted the back-end after it
+    // went to sleep, or the session expired, so the ingredient list has been cleared.
+    if (previousId && previousId !== sessionId) {
+      showSessionResetNotice();
+    }
   }
   return res;
 }
 
+// server status notice
+//
+// Render's free tier puts the back-end to sleep after about 15 minutes without traffic,
+// and the first request after that waits up to a minute while it starts again. The
+// front-end can't ask a sleeping server whether it is asleep, so it judges by time: if a
+// request hasn't answered within a few seconds, a notice explains the wait. Normal
+// requests answer well within that time, so the notice is only seen after a cold start.
+
+const SLOW_REQUEST_MS = 8000; // normal requests, including a Gemini scan
+const WAKE_UP_SLOW_MS = 3000; // the wake-up call below has no AI work to do, so 3 s is already slow
+const WAKING_MESSAGE =
+  "Waiting for the server… If the app hasn't been used for a while, it can take up to a minute to start up.";
+const RESET_MESSAGE =
+  "The server restarted while the app was idle, so your ingredient list was cleared. Please scan your ingredients again.";
+
+const serverStatusEl = document.getElementById("server-status");
+const serverStatusTextEl = document.getElementById("server-status-text");
+const serverStatusSpinnerEl = document.getElementById("server-status-spinner");
+const serverStatusCloseBtn = document.getElementById("server-status-close");
+
+let serverStatusMode = null; // null, "waking" or "reset"
+let slowRequestCount = 0;
+
+function showWakingNotice() {
+  if (serverStatusMode === "reset") {
+    return; // don't replace the reset message while it is still showing
+  }
+  serverStatusMode = "waking";
+  serverStatusTextEl.textContent = WAKING_MESSAGE;
+  serverStatusSpinnerEl.classList.remove("d-none");
+  serverStatusCloseBtn.classList.add("d-none");
+  serverStatusEl.classList.remove("d-none");
+}
+
+function hideWakingNotice() {
+  if (serverStatusMode === "waking") {
+    serverStatusEl.classList.add("d-none");
+    serverStatusMode = null;
+  }
+}
+
+function showSessionResetNotice() {
+  serverStatusMode = "reset";
+  serverStatusTextEl.textContent = RESET_MESSAGE;
+  serverStatusSpinnerEl.classList.add("d-none");
+  serverStatusCloseBtn.classList.remove("d-none");
+  serverStatusEl.classList.remove("d-none");
+}
+
+serverStatusCloseBtn.addEventListener("click", () => {
+  serverStatusEl.classList.add("d-none");
+  serverStatusMode = null;
+});
+
+// Every call to the back-end goes through here, so the slow-request notice works on
+// whichever screen the user is on.
+async function apiFetch(path, options, slowAfterMs = SLOW_REQUEST_MS) {
+  let markedSlow = false;
+  const timer = setTimeout(() => {
+    markedSlow = true;
+    slowRequestCount++;
+    showWakingNotice();
+  }, slowAfterMs);
+
+  try {
+    const res = await fetch(`${BACKEND_URL}${path}`, options);
+    return captureSessionId(res);
+  } finally {
+    clearTimeout(timer);
+    if (markedSlow) {
+      slowRequestCount--;
+      if (slowRequestCount === 0) {
+        hideWakingNotice();
+      }
+    }
+  }
+}
+
 async function apiPost(path, body) {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
+  return apiFetch(path, {
     method: "POST",
     headers: withSessionHeader({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
-  return captureSessionId(res);
 }
 
-async function apiGet(path) {
-  const res = await fetch(`${BACKEND_URL}${path}`, { headers: withSessionHeader({}) });
-  return captureSessionId(res);
+async function apiGet(path, slowAfterMs) {
+  return apiFetch(path, { headers: withSessionHeader({}) }, slowAfterMs);
 }
 
 async function apiDelete(path) {
-  const res = await fetch(`${BACKEND_URL}${path}`, {
+  return apiFetch(path, {
     method: "DELETE",
     headers: withSessionHeader({}),
   });
-  return captureSessionId(res);
 }
 
 function showAlert(el, message, variant) {
@@ -524,3 +606,27 @@ function renderRecipeDetail(detail) {
 document.getElementById("back-to-recipes-btn").addEventListener("click", () => {
   history.back();
 });
+
+// wake-up call
+//
+// Start waking the back-end as soon as the app opens, while the user is still pointing
+// the camera, so a cold start is mostly over by the time they tap Capture. GET
+// /api/ingredients only reads the session list and never calls Gemini or Spoonacular, so
+// it uses no API quota. It also restores the scan count if the page is reloaded.
+// This only runs when someone actually opens the app, unlike a scheduled keep-alive ping,
+// so it doesn't use up Render's monthly free instance hours.
+
+async function wakeServer() {
+  try {
+    const res = await apiGet("/api/ingredients", WAKE_UP_SLOW_MS);
+    if (res.ok) {
+      const ingredients = await res.json();
+      currentIngredientCount = ingredients.length;
+      scanCountEl.textContent = `${currentIngredientCount} ingredient${currentIngredientCount === 1 ? "" : "s"} scanned`;
+    }
+  } catch (err) {
+    console.error("Wake-up call failed:", err);
+  }
+}
+
+wakeServer();
