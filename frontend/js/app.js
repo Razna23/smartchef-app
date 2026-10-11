@@ -275,6 +275,13 @@ captureBtn.addEventListener("click", async () => {
           "You've used up today's free Gemini scan limit. Please try again later.",
           "danger"
         );
+      } else if (res.status === 503) {
+        // Gemini couldn't be reached or rejected the request, so the photo isn't the problem
+        showAlert(
+          scanStatusEl,
+          "The ingredient detection service is unavailable right now. Please try again in a few minutes.",
+          "danger"
+        );
       } else {
         showAlert(scanStatusEl, "Detection failed. Please try again.", "danger");
       }
